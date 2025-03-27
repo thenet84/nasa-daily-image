@@ -1,30 +1,69 @@
-import { useState } from "react";
+import { useState, useEffect, Fragment } from "react";
 import Footer from "./components/Footer"
 import Main from "./components/Main"
 import Sidebar from "./components/Sidebar"
 
-function App() {
-  const mockedImage = {
-    title: 'Blue Ghost on the Moon',
-    hdurl: 'https://apod.nasa.gov/apod/image/2503/BlueGhostShadow_Firefly_4096.jpg',
-    explanation: `There's a new lander on the Moon. Yesterday Firefly Aerospace's Blue Ghost executed the first-ever successful commercial lunar landing. During its planned 60-day mission, Blue Ghost will deploy several NASA-commissioned scientific instruments, including PlanetVac which captures lunar dust after creating a small whirlwind of gas. Blue Ghost will also host the telescope LEXI that captures X-ray images of the Earth's magnetosphere. LEXI data should enable a better understanding of how Earth's magnetic field protects the Earth from the Sun's wind and flares.  Pictured, the shadow of the Blue Ghost lander is visible on the cratered lunar surface, while the glowing orb of the planet Earth hovers just over the horizon. Goals for future robotic Blue Ghost landers include supporting lunar astronauts in NASA's Artemis program, with Artemis III currently scheduled to land humans back on the Moon in 2027.`,
-  };
-  const projectName= "Astronomy Picture of the Day";
-  const [showSidebar, setShowSidebar] = useState(false);
+type ImageData = {
+  title: string;
+  hdurl: string;
+  explanation: string;
+} | null;
 
+function App() {
+  const projectName= "Astronomy Picture of the Day";
+  
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [imageData, setImageData] = useState<ImageData>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+
+
+  useEffect(() => {
+    async function fetchImage() {
+      const NASA_API_KEY = import.meta.env.VITE_NASA_API_KEY;
+      console.log('NASA_API_KEY: ', NASA_API_KEY);
+      const API_URL = `https://api.nasa.gov/planetary/apod?api_key=${NASA_API_KEY}`;
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        setImageData(data);
+        console.log(data)
+      }
+      catch (e) {
+        console.error(e)
+        setError(true);
+      }
+    }
+    fetchImage()
+  }, [])
   function toggleSidebar() {
     setShowSidebar(!showSidebar);
   }
 
-  return (
-    <>
-      <Main imageUrl= {mockedImage.hdurl} />
-      <Footer title={mockedImage.title} subtitle={projectName} toggleSidebar={toggleSidebar} />
+  return imageData && !loading ? (
+      <Fragment>
+      <Main imageUrl= {imageData.hdurl} />
+      <Footer title={imageData.title} subtitle={projectName} toggleSidebar={toggleSidebar} />
       {showSidebar && (
-        <Sidebar title={mockedImage.title} explanation={mockedImage.explanation} toggleSidebar={toggleSidebar}/>
+        <Sidebar title={imageData.title} explanation={imageData.explanation} toggleSidebar={toggleSidebar}/>
       )}
-    </>
-  )
+    </Fragment>
+    )
+    : (
+      <>
+        {loading ? (
+          <div className="loading-state">
+             <i className="fa-solid fa-gear"></i>
+          </div>
+        ) 
+        : error && ( 
+          <div>
+            <span>Something went wrong</span>
+          </div>
+        )}
+      </>
+    )
 }
 
 export default App
